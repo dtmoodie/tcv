@@ -1,22 +1,31 @@
 #include "tcv/Tensor.hpp"
-
+#include <cuda_runtime_api.h>
+#include <cstdlib>
 namespace tcv
 {
     class DefaultAllocator: public Tensor::Allocator
     {
     public:
-        virtual bool Allocate(Tensor* tensor, size_t bytes, int elemSize)
+        bool Allocate(Tensor* tensor, size_t bytes, int elemSize)
         {
-            void* ptr = malloc(bytes);
-            tensor->h_data = (uint8_t*)ptr;
-            return ptr != 0;
+            void* ptr = nullptr;
+            cudaMallocHost(&ptr, bytes);
+            if(ptr)
+            {
+                tensor->refCount = (int*)malloc(sizeof(int));
+                *tensor->refCount = 1;
+                tensor->h_data = (uint8_t*)ptr;
+                tensor->allocator = this;
+                return true;
+            }
+            return false;
         }
-        virtual bool Deallocate(Tensor* tensor)
+        bool Deallocate(Tensor* tensor)
         {
-            free(tensor->h_data);
+            cudaFreeHost(tensor->h_data);
+            free(tensor->refCount);
             return true;
         }
-        
     };
     static DefaultAllocator g_allocator;
     Tensor::Allocator* Tensor::Allocator::getDefaultAllocator()

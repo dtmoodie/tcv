@@ -4,8 +4,11 @@ project(TCV CXX)
 file(GLOB_RECURSE hdr "include/*.hpp")
 file(GLOB_RECURSE src "src/*.cpp")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/include")
-
+list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
 add_library(TCV ${hdr} ${src})
+target_link_libraries(TCV ${CUDA_CUDART_LIBRARY})
+find_package(CUDA REQUIRED)
+include_directories(${CUDA_INCLUDE_DIRS})
 
 MACRO(SUBDIRLIST result curdir)
   FILE(GLOB children RELATIVE ${curdir} ${curdir}/*)

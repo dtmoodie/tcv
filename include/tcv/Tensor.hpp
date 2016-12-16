@@ -3,6 +3,7 @@
 #include <initializer_list>
 #include <type_traits>
 #include <cassert>
+#include <cstddef>
 
 namespace tcv
 {
@@ -125,7 +126,7 @@ namespace tcv
             if(refCount)
             {
                 --*refCount;
-                if(refCount == 0)
+                if(*refCount == 0)
                 {
                     if(allocator)
                     {
@@ -167,7 +168,6 @@ namespace tcv
             return *(static_cast<T*>(h_dataStart + offset));
         }
 
-
         // Points to the head of the data regardless of the view
         uint8_t* h_data;
         // Beginning of the view
@@ -183,8 +183,6 @@ namespace tcv
         int dims;
         Allocator* allocator;
         uint64_t flags;
-        
-    protected:
         int* refCount;
         void cleanup()
         {
@@ -193,9 +191,6 @@ namespace tcv
                 allocator->Deallocate(this);
             }
         }
-        
-    private:
-
     };
 
     template<class T, int N> struct Shape
@@ -225,6 +220,17 @@ namespace tcv
         size_t _stride[N];
     };
     
+    class View
+    {
+    public:
+
+    private:
+        uint8_t* begin;
+        uint8_t* end;
+        size_t* stride;
+        size_t* shape;
+        int dims;
+    };
     
     template<class T, class Shape> class Tensor_
         : public Tensor
@@ -242,8 +248,11 @@ namespace tcv
             if(Shape::_flags & STATIC_SIZE)
             {
                 Allocator::getDefaultAllocator()->Allocate(this, NumBytes(), DataType<T>::size);
+                h_dataStart = h_data;
+                h_dataEnd = h_dataStart + NumBytes();
             }
         }
+
         template<typename ... ArgTypes>
         T& at(ArgTypes... args)
         {
@@ -251,7 +260,38 @@ namespace tcv
             Offset(offset, 0, this->stride, args...);
             return *(T*)(h_dataStart + offset);
         }
+        template<typename ... ArgTypes>
+        const T& at(ArgTypes... args) const
+        {
+            size_t offset = 0;
+            Offset(offset, 0, this->stride, args...);
+            return *(T*)(h_dataStart + offset);
+        }
+
+        template<typename ... ArgTypes>
+        T& operator()(ArgTypes... args)
+        {
+            return this->at(args...);
+        }
+        template<typename ... ArgTypes>
+        const T& operator()(ArgTypes... args) const
+        {
+            return this->at(args...);
+        }
+
         T& at(const std::initializer_list<int>& idx)
+        {
+            assert(idx.size() <= this->dims);
+            size_t offset = 0;
+            int i = 0;
+            for (auto itr = idx.begin(); itr != idx.end(); ++itr, ++i)
+            {
+                offset += *itr * stride[i];
+            }
+            return *(T*)(h_dataStart + offset);
+        }
+
+        const T& at(const std::initializer_list<int>& idx) const
         {
             assert(idx.size() <= this->dims);
             size_t offset = 0;
