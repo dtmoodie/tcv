@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 2.8)
+project(TCV CXX)
+
+file(GLOB_RECURSE hdr "include/*.hpp")
+file(GLOB_RECURSE src "src/*.cpp")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/include")
+
+add_library(TCV ${hdr} ${src})
+
+MACRO(SUBDIRLIST result curdir)
+  FILE(GLOB children RELATIVE ${curdir} ${curdir}/*)
+  SET(dirlist "")
+  FOREACH(child ${children})
+    IF(IS_DIRECTORY ${curdir}/${child})
+      LIST(APPEND dirlist ${child})
+    ENDIF()
+  ENDFOREACH()
+  SET(${result} ${dirlist})
+ENDMACRO()
+
+SUBDIRLIST(tests "${CMAKE_CURRENT_LIST_DIR}/tests")
+foreach(test ${tests})
+  file(GLOB_RECURSE test_srcs "tests/${test}/*.cpp")
+  add_executable(${test} ${test_srcs})
+  add_dependencies(${test} TCV)
+  target_link_libraries(${test} TCV)
+  set_target_properties(${test} PROPERTIES FOLDER Tests/TCV)
+endforeach()
