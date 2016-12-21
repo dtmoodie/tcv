@@ -1,5 +1,8 @@
 #pragma once
 #include <stdint.h>
+#include "Defs.hpp"
+namespace tcv
+{
 template<class T> struct DataType {};
 template<> struct DataType<uint8_t>
 {
@@ -61,3 +64,4 @@ template<> struct DataType<double>
     static const int channels = 1;
     static const int size = sizeof(double);
 };
+} // namespace tcv

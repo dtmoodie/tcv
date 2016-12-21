@@ -1,5 +1,9 @@
 #pragma once
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include <list>
+#include <cstdint>
+#include <cstddef>
 
 #define DISALLOW_COPY_MOVE_AND_ASSIGN(TypeName) \
 TypeName(const TypeName&);                      \
@@ -41,38 +45,42 @@ public:
 
     void setCpuData(void* ptr, size_t size);
     void setGpuData(void* ptr, size_t size);
+    __host__ __device__ const uint8_t* ptr() const;
+    __host__ __device__ uint8_t* ptr();
 
-    const void* getCpu(cudaStream_t stream = 0);
-    const void* getCpu(size_t offset, size_t size,
-        cudaStream_t stream = 0);
-    const void* getCpu(size_t offset, size_t width,
-        size_t height, size_t stride,
-        cudaStream_t stream = 0);
+    const uint8_t* getCpu(cudaStream_t stream = 0);
+    const uint8_t* getCpu(size_t offset, size_t size,
+                          cudaStream_t stream = 0);
+    const uint8_t* getCpu(size_t offset, size_t width,
+                          size_t height, size_t stride,
+                          cudaStream_t stream = 0);
 
-    void*       getCpuMutable(cudaStream_t stream = 0);
-    void*       getCpuMutable(size_t offset, size_t size,
-        cudaStream_t stream = 0);
-    void*       getCpuMutable(size_t offset, size_t width,
-        size_t height, size_t stride,
-        cudaStream_t stream = 0);
+    uint8_t* getCpuMutable(cudaStream_t stream = 0);
+    uint8_t* getCpuMutable(size_t offset, size_t size,
+                           cudaStream_t stream = 0);
+    uint8_t* getCpuMutable(size_t offset, size_t width,
+                           size_t height, size_t stride,
+                           cudaStream_t stream = 0);
 
     // Request a chunk of data, this will set dirty flags on sections of requested data
-    const void* getGpu(cudaStream_t stream = 0);
-    const void* getGpu(size_t offset, size_t size,
-        cudaStream_t stream = 0);
-    const void* getGpu(size_t offset, size_t width,
-        size_t height, size_t stride,
-        cudaStream_t stream = 0);
+    const uint8_t* getGpu(cudaStream_t stream = 0);
+    const uint8_t* getGpu(size_t offset, size_t size,
+                          cudaStream_t stream = 0);
+    const uint8_t* getGpu(size_t offset, size_t width,
+                          size_t height, size_t stride,
+                          cudaStream_t stream = 0);
 
-    void*       getGpuMutable(cudaStream_t stream = 0);
-    void*       getGpuMutable(size_t offset, size_t size,
-        cudaStream_t stream = 0);
-    void*       getGpuMutable(size_t offset, size_t width,
-        size_t height, size_t stride,
-        cudaStream_t stream = 0);
+    uint8_t* getGpuMutable(cudaStream_t stream = 0);
+    uint8_t* getGpuMutable(size_t offset, size_t size,
+                           cudaStream_t stream = 0);
+    uint8_t* getGpuMutable(size_t offset, size_t width,
+                           size_t height, size_t stride,
+                           cudaStream_t stream = 0);
 
     void synchronize(cudaStream_t stream = 0);
 private:
+    void allocateCpu();
+    void allocateGpu();
     DISALLOW_COPY_MOVE_AND_ASSIGN(SyncedMemory);
     friend class Allocator;
     struct DirtyBlock
@@ -94,4 +102,51 @@ private:
     Allocator*            _allocator;
     std::list<DirtyBlock> _dirty_blocks;
 };
+
+template<class T> class SyncedMemory_: protected SyncedMemory
+{
+public:
+    SyncedMemory_(Allocator* allocator = nullptr);
+    SyncedMemory_(size_t elements, Allocator* allocator = nullptr);
+    ~SyncedMemory_();
+
+    bool resize(size_t elements);
+    size_t  getSize() const;
+    uint8_t getGpuId() const;
+    Flags   getSyncState() const;
+
+    void setCpuData(T* ptr, size_t num_elements);
+    void setGpuData(T* ptr, size_t num_elements);
+
+    const T* getCpu(cudaStream_t stream = 0);
+    const T* getCpu(size_t offset, size_t size,
+                    cudaStream_t stream = 0);
+    const T* getCpu(size_t offset, size_t width,
+                    size_t height, size_t stride,
+                    cudaStream_t stream = 0);
+
+    T* getCpuMutable(cudaStream_t stream = 0);
+    T* getCpuMutable(size_t offset, size_t size, cudaStream_t stream = 0);
+    T* getCpuMutable(size_t offset, size_t width,
+                     size_t height, size_t stride,
+                     cudaStream_t stream = 0);
+
+    // Request a chunk of data, this will set dirty flags on sections of requested data
+    const T* getGpu(cudaStream_t stream = 0);
+    const T* getGpu(size_t offset, size_t size,
+                    cudaStream_t stream = 0);
+    const T* getGpu(size_t offset, size_t width,
+                    size_t height, size_t stride,
+                    cudaStream_t stream = 0);
+
+    T& operator[](size_t index);
+
+    T* getGpuMutable(cudaStream_t stream = 0);
+    T* getGpuMutable(size_t offset, size_t size,
+                     cudaStream_t stream = 0);
+    T* getGpuMutable(size_t offset, size_t width,
+                     size_t height, size_t stride,
+                     cudaStream_t stream = 0);
+};
+
 }

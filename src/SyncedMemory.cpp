@@ -31,6 +31,7 @@ SyncedMemory::~SyncedMemory()
 {
 
 }
+
 bool SyncedMemory::resize(size_t size)
 {
     if(_cpu_data)
@@ -81,7 +82,7 @@ void SyncedMemory::setGpuData(void* ptr, size_t size)
 }
 
 // This will dirty the entire data block
-void* SyncedMemory::getCpuMutable(cudaStream_t stream)
+uint8_t* SyncedMemory::getCpuMutable(cudaStream_t stream)
 {
     for (auto itr = _dirty_blocks.begin(); itr != _dirty_blocks.end(); ++itr)
     {
@@ -97,7 +98,7 @@ void* SyncedMemory::getCpuMutable(cudaStream_t stream)
     return _cpu_data;
 }
 
-void* SyncedMemory::getGpuMutable(cudaStream_t stream)
+uint8_t* SyncedMemory::getGpuMutable(cudaStream_t stream)
 {
     for (auto itr = _dirty_blocks.begin(); itr != _dirty_blocks.end(); ++itr)
     {
@@ -113,8 +114,12 @@ void* SyncedMemory::getGpuMutable(cudaStream_t stream)
     return _gpu_data;
 }
 
-const void* SyncedMemory::getCpu(cudaStream_t stream)
+const uint8_t* SyncedMemory::getCpu(cudaStream_t stream)
 {
+    if(_cpu_data == nullptr)
+    {
+        allocateCpu();
+    }
     for (auto itr = _dirty_blocks.begin(); itr != _dirty_blocks.end(); ++itr)
     {
         if (itr->dirty_cpu == false)
@@ -128,8 +133,12 @@ const void* SyncedMemory::getCpu(cudaStream_t stream)
     return _cpu_data;
 }
 
-const void* SyncedMemory::getGpu(cudaStream_t stream)
+const uint8_t* SyncedMemory::getGpu(cudaStream_t stream)
 {
+    if(_cpu_data == nullptr)
+    {
+        allocateGpu();
+    }
     for (auto itr = _dirty_blocks.begin(); itr != _dirty_blocks.end(); ++itr)
     {
         if (itr->dirty_cpu == true)
@@ -144,22 +153,22 @@ const void* SyncedMemory::getGpu(cudaStream_t stream)
 }
 
 // Request a chunk of data, this will set dirty flags on sections of requested data
-void* SyncedMemory::getCpuMutable(size_t offset, size_t size, cudaStream_t stream)
+uint8_t* SyncedMemory::getCpuMutable(size_t offset, size_t size, cudaStream_t stream)
 {
     return nullptr;
 }
 
-void* SyncedMemory::getGpuMutable(size_t offset, size_t size, cudaStream_t stream)
+uint8_t* SyncedMemory::getGpuMutable(size_t offset, size_t size, cudaStream_t stream)
 {
     return nullptr;
 }
 // This just lets you grab a chunk of data, will only synchronize what is needed
-const void* SyncedMemory::getCpu(size_t offset, size_t size, cudaStream_t stream)
+const uint8_t* SyncedMemory::getCpu(size_t offset, size_t size, cudaStream_t stream)
 {
     return nullptr;
 }
 
-const void* SyncedMemory::getGpu(size_t offset, size_t size, cudaStream_t stream )
+const uint8_t* SyncedMemory::getGpu(size_t offset, size_t size, cudaStream_t stream )
 {
     return nullptr;
 }
@@ -167,4 +176,30 @@ const void* SyncedMemory::getGpu(size_t offset, size_t size, cudaStream_t stream
 void SyncedMemory::synchronize(cudaStream_t stream)
 {
 
+}
+
+void SyncedMemory::allocateCpu()
+{
+    if(_allocator)
+    {
+        if(!this->_allocator->allocateCpu((void**)&_cpu_data, _size))
+        {
+            Allocator::getDefaultAllocator()->allocateCpu((void**)&_cpu_data, _size);
+            return;
+        }
+    }
+    Allocator::getDefaultAllocator()->allocateCpu((void**)&_cpu_data, _size);
+}
+
+void SyncedMemory::allocateGpu()
+{
+    if(_allocator)
+    {
+        if(!this->_allocator->allocateGpu((void**)&_gpu_data, _size))
+        {
+            Allocator::getDefaultAllocator()->allocateGpu((void**)&_gpu_data, _size);
+            return;
+        }
+    }
+    Allocator::getDefaultAllocator()->allocateGpu((void**)&_gpu_data, _size);
 }

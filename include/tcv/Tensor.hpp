@@ -1,36 +1,16 @@
 #pragma once
+#include "SyncedMemory.hpp"
+#include "TypeTraits.hpp"
+#include "Defs.hpp"
+#include "Allocator.hpp"
+
 #include <cstddef>
 #include <initializer_list>
 #include <type_traits>
 #include <cassert>
-#include "SyncedMemory.hpp"
-
-
 
 namespace tcv
 {
-    enum DTypes : short
-    {
-        U8  = 0,
-        S8  = 1,
-        U16 = 2,
-        S16 = 3,
-        F16 = 4,
-        U32 = 5,
-        S32 = 6,
-        F32 = 7,
-        U64 = 8,
-        S64 = 9,
-        F64 = 10
-    };
-#define STATIC_SHAPE 32
-// If this flag is thrown then the channel's of an image are packed into the last dimension of the tensor
-// thus H x W x C which is opencv's format instead of C x H x W which is caffe's format.
-#define CHANNEL_LAST_DIM 64
-// Throw this flag if the number of dimensions of the tensor are statically defined
-#define STATIC_DIMS 128
-#define CONTINUOUS_TENSOR 256
-
 
     template<typename T>
     void Offset(size_t& offset, int index, const size_t* stride, T t)
@@ -43,6 +23,7 @@ namespace tcv
         offset += stride[index] * t;
         Offset(offset, index + 1, stride, args...);
     }
+
     class SyncedMemory;
     class Tensor;
     
@@ -56,7 +37,7 @@ namespace tcv
             size_t size = 1;
             for(int i = dims - 1; i >= 0; --i)
             {
-                size *= stride[i];
+                size *= (*stride)[i];
             }
             return size;
         }
@@ -67,31 +48,30 @@ namespace tcv
             int i = 0;
             for(auto itr = idx.begin(); itr != idx.end(); ++itr, ++i)
             {
-                offset += *itr * stride[i];
+                offset += *itr * (*stride)[i];
             }
-            return h_dataStart + offset;
+            return data->getCpu() + offset;
         }
+
         template<typename T, int N> T& at(int indecies[N])
         {
             size_t offset = 0;
             for(int i = N-1; i >= 0; --i)
             {
-                offset += indecies[i] * stride[i];
+                offset += indecies[i] * (*stride)[i];
             }
-            return *(static_cast<T*>(h_dataStart + offset));
+            return *(static_cast<T*>(data->getCpu() + offset));
         }
 
         SyncedMemory* data;
-        size_t* stride;
-        size_t* shape;
+        SyncedMemory_<size_t>* stride;
+        SyncedMemory_<size_t>* shape;
         int dims;
         Allocator* allocator;
         uint64_t flags;
         int* refCount;
         void cleanup();
     };
-
-
 
     template<class T, int N>
     struct Shape
@@ -105,6 +85,7 @@ namespace tcv
     {
         
     };
+
     template<class T, int... Size>
     struct StaticShape
     {
@@ -133,16 +114,14 @@ namespace tcv
         Tensor_():
             Shape()
         {
-            this->shape = this->_shape;
-            this->stride = this->_stride;
+            this->shape->setCpuData(this->_shape, Shape::N);
+            this->stride->setCpuData(this->_stride, Shape::N);
             this->dims = Shape::N;
             this->flags = Shape::_flags;
             this->flags += DataType<T>::DType;
-            if(Shape::_flags & STATIC_SIZE)
+            if(Shape::_flags & STATIC_SHAPE)
             {
-                Allocator::getDefaultAllocator()->Allocate(this, NumBytes(), DataType<T>::size);
-                h_dataStart = h_data;
-                h_dataEnd = h_dataStart + NumBytes();
+                Allocator::getDefaultAllocator()->allocate(this, numBytes(), DataType<T>::size);
             }
         }
 
@@ -150,15 +129,15 @@ namespace tcv
         T& at(ArgTypes... args)
         {
             size_t offset = 0;
-            Offset(offset, 0, this->stride, args...);
-            return *(T*)(h_dataStart + offset);
+            Offset(offset, 0, this->stride->getCpu(), args...);
+            return *(T*)(data->getCpu() + offset);
         }
         template<typename ... ArgTypes>
         const T& at(ArgTypes... args) const
         {
             size_t offset = 0;
             Offset(offset, 0, this->stride, args...);
-            return *(T*)(h_dataStart + offset);
+            return *(T*)(data->getCpu() + offset);
         }
 
         template<typename ... ArgTypes>
@@ -179,9 +158,9 @@ namespace tcv
             int i = 0;
             for (auto itr = idx.begin(); itr != idx.end(); ++itr, ++i)
             {
-                offset += *itr * stride[i];
+                offset += *itr * (*stride)[i];
             }
-            return *(T*)(h_dataStart + offset);
+            return *(T*)(data->getCpuMutable() + offset);
         }
 
         const T& at(const std::initializer_list<int>& idx) const
@@ -191,10 +170,9 @@ namespace tcv
             int i = 0;
             for (auto itr = idx.begin(); itr != idx.end(); ++itr, ++i)
             {
-                offset += *itr * stride[i];
+                offset += *itr * (*stride)[i];
             }
-            return *(T*)(h_dataStart + offset);
+            return *(T*)(data->getCpu() + offset);
         }
     };
-
 }

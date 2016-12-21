@@ -1,5 +1,5 @@
 #include <tcv/Tensor.hpp>
-
+#include <tcv/SyncedMemoryImpl.hpp>
 
 int main()
 {
