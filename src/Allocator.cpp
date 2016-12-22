@@ -43,22 +43,23 @@ namespace tcv
             *ptr = malloc(bytes);
             return *ptr != nullptr;
         }
-        bool allocate(SyncedMemory* synced_mem, size_t bytes, int elemSize)
+        bool allocate(SyncedMemory* synced_mem, size_t bytes, uint8_t elemSize)
         {
             return true;
         }
-        bool allocate(Tensor* tensor, size_t bytes, int elemSize)
+        bool allocate(Tensor* tensor, size_t bytes, uint8_t elemSize)
         {
-            void* ptr = nullptr;
-            cudaMallocHost(&ptr, bytes);
-            if (ptr)
+            if(tensor->data)
             {
-                tensor->refCount = (int*)malloc(sizeof(int));
-                *tensor->refCount = 1;
-                tensor->data = new SyncedMemory(bytes);
-                tensor->allocator = this;
-                return true;
+                delete tensor->data;
+                tensor->data = nullptr;
             }
+            tensor->refCount = (int*)malloc(sizeof(int));
+            *tensor->refCount = 1;
+            tensor->data = new SyncedMemory(bytes, elemSize, this);
+            tensor->allocator = this;
+            return true;
+
             return false;
         }
 

@@ -17,13 +17,18 @@ SyncedMemory::SyncedMemory(Allocator* allocator)
 {
     
 }
-SyncedMemory::SyncedMemory(size_t size, Allocator* allocator)
+SyncedMemory::SyncedMemory(size_t size, uint8_t elemType, Allocator* allocator)
     : _allocator(allocator)
     , _cpu_data(nullptr)
     , _gpu_data(nullptr)
     , _flags(0)
     , _size(size)
 {
+    _flags += (int)elemType << 12;
+    if(_allocator == nullptr)
+    {
+        _allocator = Allocator::getDefaultAllocator();
+    }
 
 }
 
@@ -53,9 +58,19 @@ bool SyncedMemory::resize(size_t size)
     _size = size;
     return true;
 }
-size_t  SyncedMemory::getSize() const
+size_t SyncedMemory::getSize() const
 {
     return _size;
+}
+
+uint8_t SyncedMemory::getElemSize() const
+{
+    return typeToSize(getElemType());
+}
+
+uint8_t SyncedMemory::getElemType() const
+{
+    return (_flags >> 12) & 0x0F;
 }
 
 uint8_t SyncedMemory::getGpuId() const
@@ -71,14 +86,16 @@ SyncedMemory::Flags SyncedMemory::getSyncState() const
     }
 }
 
-void SyncedMemory::setCpuData(void* ptr, size_t size)
+void SyncedMemory::setCpuData(uint8_t* ptr, size_t size, uint16_t flags)
 {
-    
+    _cpu_data = ptr;
+    _size = size;
 }
 
-void SyncedMemory::setGpuData(void* ptr, size_t size)
+void SyncedMemory::setGpuData(uint8_t* ptr, size_t size, uint16_t flags)
 {
-
+    _gpu_data = ptr;
+    _size = size;
 }
 
 // This will dirty the entire data block

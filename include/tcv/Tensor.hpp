@@ -24,6 +24,24 @@ namespace tcv
         Offset(offset, index + 1, stride, args...);
     }
 
+    template<int Dim, int MaxDim, typename T>
+    size_t Offset_(const size_t* stride, T idx)
+    {
+        static_assert(Dim < MaxDim, "Dim must be less than MaxDim");
+        return stride[Dim] * idx;
+    }
+    template<int Dim, int MaxDim, typename T, typename... ArgTypes>
+    size_t Offset_(const size_t* stride, T idx, ArgTypes... args)
+    {
+        return Offset_<Dim + 1, MaxDim, ArgTypes...>(stride, args...) + stride[Dim] * idx;
+    }
+    template<int MaxDim, typename... ArgTypes>
+    size_t Offset(const size_t* stride, ArgTypes... args)
+    {
+        return Offset_<0, MaxDim, ArgTypes...>(stride, args...);
+    }
+
+
     class SyncedMemory;
     class Tensor;
     
@@ -35,11 +53,15 @@ namespace tcv
         size_t numBytes() const
         {
             size_t size = 1;
-            for(int i = dims - 1; i >= 0; --i)
+            for(int i = 0; i < dims; ++i)
             {
-                size *= (*stride)[i];
+                size *= (*shape)[i];
             }
             return size;
+        }
+        uint8_t elemType() const
+        {
+            return data->getElemType();
         }
         
         template<typename T> T& at(const std::initializer_list<int>& idx)
@@ -86,6 +108,31 @@ namespace tcv
         
     };
 
+    template<class T, int N, int... Dims> struct DimHandle: public DimHandle<T, Dims...>
+    {
+        template<class Arg, class...Args>
+        static constexpr size_t offset(Arg arg, Args... args)
+        {
+            return DimHandle<T,Dims...>::offset(args...) + arg*stride();
+        }
+        static constexpr size_t stride()
+        {
+            return DimHandle<T, Dims...>::stride()*N;
+        }
+    };
+    template<class T, int N> struct DimHandle<T, N>
+    {
+        template<class Arg>
+        static constexpr size_t offset(Arg arg)
+        {
+            return arg*N;
+        }
+        static constexpr size_t stride()
+        {
+            return sizeof(T)*N;
+        }
+    };
+
     template<class T, int... Size>
     struct StaticShape
     {
@@ -100,7 +147,17 @@ namespace tcv
                 size *= _shape[i];
             }
         }
-        
+        template<class...Args>
+        constexpr size_t getOffset(Args... args)
+        {
+            return DimHandle<T, Size...>::offset(args...);
+        }
+
+        constexpr size_t getStride()
+        {
+            return DimHandle<T, Size...>::stride();
+        }
+
         size_t _shape[N] = {Size...};
         size_t _stride[N];
     };
@@ -114,6 +171,8 @@ namespace tcv
         Tensor_():
             Shape()
         {
+            this->shape = new SyncedMemory_<size_t>();
+            this->stride = new SyncedMemory_<size_t>();
             this->shape->setCpuData(this->_shape, Shape::N);
             this->stride->setCpuData(this->_stride, Shape::N);
             this->dims = Shape::N;
@@ -121,57 +180,23 @@ namespace tcv
             this->flags += DataType<T>::DType;
             if(Shape::_flags & STATIC_SHAPE)
             {
-                Allocator::getDefaultAllocator()->allocate(this, numBytes(), DataType<T>::size);
+                Allocator::getDefaultAllocator()->allocate(this, numBytes(), DataType<T>::DType);
             }
-        }
-
-        template<typename ... ArgTypes>
-        T& at(ArgTypes... args)
-        {
-            size_t offset = 0;
-            Offset(offset, 0, this->stride->getCpu(), args...);
-            return *(T*)(data->getCpu() + offset);
-        }
-        template<typename ... ArgTypes>
-        const T& at(ArgTypes... args) const
-        {
-            size_t offset = 0;
-            Offset(offset, 0, this->stride, args...);
-            return *(T*)(data->getCpu() + offset);
         }
 
         template<typename ... ArgTypes>
         T& operator()(ArgTypes... args)
         {
-            return this->at(args...);
+            size_t offset = Offset<Shape::N>(this->_stride, args...);
+            size_t test = Shape::getOffset(args...);
+            return *(T*)(data->getCpu() + offset);
         }
+
         template<typename ... ArgTypes>
         const T& operator()(ArgTypes... args) const
         {
-            return this->at(args...);
-        }
+            size_t offset = Offset<Shape::N>(this->_stride, args...);
 
-        T& at(const std::initializer_list<int>& idx)
-        {
-            assert(idx.size() <= this->dims);
-            size_t offset = 0;
-            int i = 0;
-            for (auto itr = idx.begin(); itr != idx.end(); ++itr, ++i)
-            {
-                offset += *itr * (*stride)[i];
-            }
-            return *(T*)(data->getCpuMutable() + offset);
-        }
-
-        const T& at(const std::initializer_list<int>& idx) const
-        {
-            assert(idx.size() <= this->dims);
-            size_t offset = 0;
-            int i = 0;
-            for (auto itr = idx.begin(); itr != idx.end(); ++itr, ++i)
-            {
-                offset += *itr * (*stride)[i];
-            }
             return *(T*)(data->getCpu() + offset);
         }
     };

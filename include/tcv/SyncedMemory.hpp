@@ -21,32 +21,36 @@ class Allocator;
 class SyncedMemory
 {
 public:
-    enum Flags : short
+    enum Flags : uint32_t
     {
         // This first 8 bits ares reserved for the device id of the gpu
         // If this flag is thrown, then operations will not add dirty blocks
         // This should be used when wrapping other synced memory classes that do
-        // their own syncrhonization
+        // their own synchronization
         HeadAtCpu_e = 256,
         HeadAtGpu_e = 257,
         Synchronized_e = 258,
         DoNotSync_e = 259,
         OwnsCpu_e = 512,
-        OwnsGpu_e = 1024
+        OwnsGpu_e = 1024,
+        ReadOnlyCpu_e = 2048,
+        ReadOnlyGpu_e = 4096
+        // The next bits 4 bits are used to flag element info
     };
+
     SyncedMemory(Allocator* allocator = nullptr);
-    SyncedMemory(size_t size, Allocator* allocator = nullptr);
+    SyncedMemory(size_t size, uint8_t elemType, Allocator* allocator = nullptr);
     ~SyncedMemory();
 
     bool resize(size_t size);
     size_t  getSize() const;
+    uint8_t getElemSize() const;
+    uint8_t getElemType() const;
     uint8_t getGpuId() const;
     Flags   getSyncState() const;
 
-    void setCpuData(void* ptr, size_t size);
-    void setGpuData(void* ptr, size_t size);
-    __host__ __device__ const uint8_t* ptr() const;
-    __host__ __device__ uint8_t* ptr();
+    void setCpuData(uint8_t* ptr, size_t size, uint16_t flags = 0);
+    void setGpuData(uint8_t* ptr, size_t size, uint16_t flags = 0);
 
     const uint8_t* getCpu(cudaStream_t stream = 0);
     const uint8_t* getCpu(size_t offset, size_t size,
@@ -78,7 +82,7 @@ public:
                            cudaStream_t stream = 0);
 
     void synchronize(cudaStream_t stream = 0);
-private:
+protected:
     void allocateCpu();
     void allocateGpu();
     DISALLOW_COPY_MOVE_AND_ASSIGN(SyncedMemory);
@@ -97,10 +101,11 @@ private:
     };
     uint8_t*              _cpu_data;
     uint8_t*              _gpu_data;
-    uint8_t               _flags;
+    uint32_t               _flags;
     size_t                _size;
     Allocator*            _allocator;
     std::list<DirtyBlock> _dirty_blocks;
+
 };
 
 template<class T> class SyncedMemory_: protected SyncedMemory
@@ -147,6 +152,9 @@ public:
     T* getGpuMutable(size_t offset, size_t width,
                      size_t height, size_t stride,
                      cudaStream_t stream = 0);
+protected:
+    DISALLOW_COPY_MOVE_AND_ASSIGN(SyncedMemory_);
+
 };
 
 }

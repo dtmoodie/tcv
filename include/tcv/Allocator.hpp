@@ -12,8 +12,8 @@ namespace tcv
         virtual ~Allocator() {}
         virtual bool allocateGpu(void** ptr, size_t bytes) = 0;
         virtual bool allocateCpu(void** ptr, size_t bytes) = 0;
-        virtual bool allocate(SyncedMemory* synced_mem, size_t bytes, int elemSize) = 0;
-        virtual bool allocate(Tensor* tensor, size_t bytes, int elemSize) = 0;
+        virtual bool allocate(SyncedMemory* synced_mem, size_t bytes, uint8_t elemSize) = 0;
+        virtual bool allocate(Tensor* tensor, size_t bytes, uint8_t elemSize) = 0;
 
         virtual bool deallocateGpu(void* ptr, size_t bytes) = 0;
         virtual bool deallocateCpu(void* ptr, size_t bytes) = 0;
