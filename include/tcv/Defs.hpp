@@ -25,5 +25,12 @@ enum DTypes : short
     F64 = 10
 };
 
+#if (defined WIN32 || defined _WIN32 || defined WINCE || defined __CYGWIN__) && defined TCV_EXPORTS
+#  define TCV_EXPORT __declspec(dllexport)
+#elif defined __GNUC__ && __GNUC__ >= 4
+#  define TCV_EXPORT __attribute__ ((visibility ("default")))
+#else
+#  define TCV_EXPORT
+#endif
 
 }

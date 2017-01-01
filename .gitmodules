@@ -1,0 +1,3 @@
+[submodule "external/yar"]
+	path = external/yar
+	url = http://github.com/dtmoodie/yar

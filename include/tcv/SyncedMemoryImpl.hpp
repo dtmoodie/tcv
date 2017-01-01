@@ -1,8 +1,16 @@
 #pragma once
+#include "tcv/TypeTraits.hpp"
 namespace tcv
 {
 class SyncedMemory;
 template<class T> class SyncedMemory_;
+
+template<class T>
+SyncedMemory::SyncedMemory(std::vector<T>& vec, Allocator* allocator):
+    SyncedMemory(CpuPtr<uint8_t>((uint8_t*)vec.data()), vec.size() * sizeof(T), DataType<T>::DType, allocator)
+{
+}
+
 template<class T>
 SyncedMemory_<T>::SyncedMemory_(Allocator* allocator):
     SyncedMemory(allocator)
@@ -26,7 +34,7 @@ SyncedMemory_<T>::~SyncedMemory_()
 template<class T>
 bool SyncedMemory_<T>::resize(size_t elements)
 {
-    return SyncedMemory::resize(elements);
+    return SyncedMemory::resize(elements*sizeof(T));
 }
 
 template<class T>
@@ -84,7 +92,7 @@ const T* SyncedMemory_<T>::getCpu(size_t offset, size_t width,
 template<class T>
 T* SyncedMemory_<T>::getCpuMutable(cudaStream_t stream)
 {
-
+    return (T*)SyncedMemory::getCpu(stream);
 }
 
 template<class T>
@@ -151,4 +159,39 @@ T* SyncedMemory_<T>::getGpuMutable(size_t offset, size_t width,
     return (T*)SyncedMemory::getGpuMutable(offset*sizeof(T), width*sizeof(T), height, stride, stream);
 }
 
+template<class T>
+void SyncedMemory_<T>::copyTo(SyncedMemory& other, cudaStream_t stream)
+{
+    SyncedMemory::copyTo(other, stream);
+}
+template<class T>
+void SyncedMemory_<T>::copyFromCpu(const void* data, size_t size, cudaStream_t stream)
+{
+    SyncedMemory::copyFromCpu(data, size, stream);
+}
+template<class T>
+void SyncedMemory_<T>::copyFromGpu(const void* data, size_t size, cudaStream_t stream)
+{
+    SyncedMemory::copyFromGpu(data, size, stream);
+}
+template<class T>
+SyncedMemory_<T>* SyncedMemory_<T>::clone(cudaStream_t stream)
+{
+    synchronize(stream);
+    SyncedMemory_<T>* output = new SyncedMemory_<T>();
+    output->_size = this->_size;
+    output->_allocator = this->_allocator;
+    output->_flags = this->_flags;
+    if (_gpu_data)
+    {
+        auto ptr = output->getGpuMutable(stream);
+        cudaMemcpyAsync(ptr, _gpu_data, _size, cudaMemcpyDeviceToDevice, stream);
+        return output;
+    } else if(_cpu_data)
+    {
+        auto ptr = output->getCpuMutable(stream);
+        cudaMemcpyAsync(ptr, _cpu_data, _size, cudaMemcpyHostToHost, stream);
+    }
+    return output;
+}
 }

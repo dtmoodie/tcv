@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "Defs.hpp"
+#include <vector_types.h>
 namespace tcv
 {
 template<class T> struct DataType {};
@@ -66,4 +67,45 @@ template<> struct DataType<double>
     static const int channels = 1;
     static const int size = sizeof(double);
 };
+
+#define EXPAND_CUDA_VECTOR_TYPE(base, flag) \
+template<> struct DataType<base##1> \
+{ \
+    static const uint8_t DType = flag; \
+    static const int channels = 1; \
+    static const int size = sizeof(base##1); \
+}; \
+template<> struct DataType<base##2> \
+{ \
+    static const uint8_t DType = flag; \
+    static const int channels = 2; \
+    static const int size = sizeof(base##1); \
+}; \
+template<> struct DataType<base##3> \
+{ \
+    static const uint8_t DType = flag; \
+    static const int channels = 3; \
+    static const int size = sizeof(base##1); \
+}; \
+template<> struct DataType<base##4> \
+{ \
+    static const uint8_t DType = flag; \
+    static const int channels = 4; \
+    static const int size = sizeof(base##1); \
+}
+
+EXPAND_CUDA_VECTOR_TYPE(uchar, U8);
+EXPAND_CUDA_VECTOR_TYPE(char, S8);
+EXPAND_CUDA_VECTOR_TYPE(ushort, U16);
+EXPAND_CUDA_VECTOR_TYPE(short, S16);
+EXPAND_CUDA_VECTOR_TYPE(uint, U32);
+EXPAND_CUDA_VECTOR_TYPE(int, S32);
+EXPAND_CUDA_VECTOR_TYPE(float, F32);
+EXPAND_CUDA_VECTOR_TYPE(double, F64);
+EXPAND_CUDA_VECTOR_TYPE(long, S32);
+EXPAND_CUDA_VECTOR_TYPE(ulong, U32);
+EXPAND_CUDA_VECTOR_TYPE(longlong, S64);
+EXPAND_CUDA_VECTOR_TYPE(ulonglong, U64);
+
+
 } // namespace tcv

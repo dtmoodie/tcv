@@ -24,37 +24,107 @@ SyncedMemory::SyncedMemory(size_t size, uint8_t elemType, Allocator* allocator)
     , _flags(0)
     , _size(size)
 {
-    _flags += (int)elemType << 12;
+    _flags |= (int)elemType << 12;
     if(_allocator == nullptr)
     {
         _allocator = Allocator::getDefaultAllocator();
     }
 
 }
+SyncedMemory::SyncedMemory(CpuPtr<uint8_t> data, size_t size, uint8_t elemType, Allocator* allocator):
+    _allocator(allocator),
+    _cpu_data((uint8_t*)data.ptr),
+    _gpu_data(nullptr),
+    _size(size),
+    _flags(0)
+{
+    _flags = (int)elemType << 12;
+    if (_allocator == nullptr)
+    {
+        _allocator = Allocator::getDefaultAllocator();
+    }
+}
 
+SyncedMemory::SyncedMemory(GpuPtr<uint8_t> data, size_t size, uint8_t elemType, Allocator* allocator):
+    _allocator(allocator),
+    _cpu_data(nullptr),
+    _gpu_data((uint8_t*)data.ptr),
+    _size(size),
+    _flags((int)elemType << 12)
+{
+    if (_allocator == nullptr)
+    {
+        _allocator = Allocator::getDefaultAllocator();
+    }
+}
 SyncedMemory::~SyncedMemory()
 {
-
+    if(_cpu_data && _flags & OwnsCpu_e)
+    {
+        if(_allocator)
+        {
+            if (!_allocator->deallocateCpu(_cpu_data, _size))
+                Allocator::getDefaultAllocator()->deallocateCpu(_cpu_data, _size);
+        }
+        else
+        {
+            Allocator::getDefaultAllocator()->deallocateCpu(_cpu_data, _size);
+        }
+    }
+    if(_gpu_data && _flags & OwnsGpu_e)
+    {
+        if(_allocator)
+        {
+            if(!_allocator->deallocateGpu(_gpu_data, _size))
+                Allocator::getDefaultAllocator()->deallocateGpu(_gpu_data, _size);
+        }else
+        {
+            Allocator::getDefaultAllocator()->deallocateGpu(_gpu_data, _size);
+        }
+    }
 }
 
 bool SyncedMemory::resize(size_t size)
 {
+    if(size == _size)
+        return true;
     if(_cpu_data)
     {
-        if(!_allocator->deallocateCpu(_cpu_data, _size))
+        if(_flags & OwnsCpu_e)
         {
-        
-        }   Allocator::getDefaultAllocator()->deallocateCpu(_cpu_data, _size);
+            if (_allocator)
+            {
+                if (!_allocator->deallocateCpu(_cpu_data, _size))
+                {
+                    Allocator::getDefaultAllocator()->deallocateCpu(_cpu_data, _size);
+                }
+            }
+            else
+            {
+                Allocator::getDefaultAllocator()->deallocateCpu(_cpu_data, _size);
+            }
+        }
         _cpu_data = nullptr;
     }
     if(_gpu_data)
     {
-        if(!_allocator->deallocateGpu(_gpu_data, _size))
+        if(_flags & OwnsGpu_e)
         {
-            Allocator::getDefaultAllocator()->deallocateGpu(_gpu_data, _size);
+            if (_allocator)
+            {
+                if (!_allocator->deallocateGpu(_gpu_data, _size))
+                {
+                    Allocator::getDefaultAllocator()->deallocateGpu(_gpu_data, _size);
+                }
+            }
+            else
+            {
+                Allocator::getDefaultAllocator()->deallocateGpu(_gpu_data, _size);
+            }
         }
         _gpu_data = nullptr;
     }
+    _dirty_blocks.clear();
     _size = size;
     return true;
 }
@@ -90,17 +160,23 @@ void SyncedMemory::setCpuData(uint8_t* ptr, size_t size, uint16_t flags)
 {
     _cpu_data = ptr;
     _size = size;
+    _flags |= flags;
 }
 
 void SyncedMemory::setGpuData(uint8_t* ptr, size_t size, uint16_t flags)
 {
     _gpu_data = ptr;
     _size = size;
+    _flags |= flags;
 }
 
 // This will dirty the entire data block
 uint8_t* SyncedMemory::getCpuMutable(cudaStream_t stream)
 {
+    if (_cpu_data == nullptr)
+    {
+        allocateCpu();
+    }
     for (auto itr = _dirty_blocks.begin(); itr != _dirty_blocks.end(); ++itr)
     {
         if(itr->dirty_cpu == false)
@@ -117,6 +193,10 @@ uint8_t* SyncedMemory::getCpuMutable(cudaStream_t stream)
 
 uint8_t* SyncedMemory::getGpuMutable(cudaStream_t stream)
 {
+    if (_gpu_data == nullptr)
+    {
+        allocateGpu();
+    }
     for (auto itr = _dirty_blocks.begin(); itr != _dirty_blocks.end(); ++itr)
     {
         if (itr->dirty_cpu == true)
@@ -152,7 +232,7 @@ const uint8_t* SyncedMemory::getCpu(cudaStream_t stream)
 
 const uint8_t* SyncedMemory::getGpu(cudaStream_t stream)
 {
-    if(_cpu_data == nullptr)
+    if(_gpu_data == nullptr)
     {
         allocateGpu();
     }
@@ -199,24 +279,52 @@ void SyncedMemory::allocateCpu()
 {
     if(_allocator)
     {
-        if(!this->_allocator->allocateCpu((void**)&_cpu_data, _size))
-        {
-            Allocator::getDefaultAllocator()->allocateCpu((void**)&_cpu_data, _size);
+        if(this->_allocator->allocateCpu((void**)&_cpu_data, _size))
+        { 
+            _flags |= OwnsCpu_e;
             return;
         }
     }
     Allocator::getDefaultAllocator()->allocateCpu((void**)&_cpu_data, _size);
+    _flags |= OwnsCpu_e;
 }
 
 void SyncedMemory::allocateGpu()
 {
     if(_allocator)
     {
-        if(!this->_allocator->allocateGpu((void**)&_gpu_data, _size))
+        if(this->_allocator->allocateGpu((void**)&_gpu_data, _size))
         {
-            Allocator::getDefaultAllocator()->allocateGpu((void**)&_gpu_data, _size);
+            _flags |= OwnsGpu_e;
             return;
         }
     }
     Allocator::getDefaultAllocator()->allocateGpu((void**)&_gpu_data, _size);
+    _flags |= OwnsGpu_e;
+}
+SyncedMemory* SyncedMemory::clone(cudaStream_t stream)
+{
+    SyncedMemory* output = new SyncedMemory(_size, getElemType(), _allocator);
+    copyTo(*output, stream);
+    return output;
+}
+void SyncedMemory::copyTo(SyncedMemory& other, cudaStream_t stream)
+{
+    // Need to figoure out dirtying
+    synchronize(stream);
+    cudaMemcpyAsync(other.getGpuMutable(), getGpu(), _size, cudaMemcpyDeviceToDevice, stream);
+    cudaMemcpyAsync(other.getCpuMutable(), getCpu(), _size, cudaMemcpyHostToHost, stream);
+    other._dirty_blocks.clear();
+}
+void SyncedMemory::copyFromCpu(const void* data, size_t size, cudaStream_t stream)
+{
+    if(_size != size)
+        resize(size);
+    cudaMemcpyAsync(getCpuMutable(stream), data, size, cudaMemcpyHostToHost, stream);
+}
+void SyncedMemory::copyFromGpu(const void* data, size_t size, cudaStream_t stream)
+{
+    if (_size != size)
+        resize(size);
+    cudaMemcpyAsync(getGpuMutable(stream), data, size, cudaMemcpyDeviceToDevice, stream);
 }
