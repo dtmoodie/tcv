@@ -61,8 +61,10 @@ BOOST_AUTO_TEST_CASE(synced_memory_creation)
     BOOST_REQUIRE_EQUAL(mem.getElemType(), DataType<float>::DType);
     const uint8_t* h_ptr = mem.getCpu();
     BOOST_REQUIRE(h_ptr);
+#ifndef CPU_ONLY
     const uint8_t* d_ptr = mem.getGpu();
     BOOST_REQUIRE(d_ptr);
+#endif
 
     float* data = (float*)mem.getCpuMutable();
     BOOST_REQUIRE(data);
@@ -93,9 +95,11 @@ BOOST_AUTO_TEST_CASE(custom_allocator)
         const uint8_t* h_ptr = mem.getCpu();
         BOOST_REQUIRE(h_ptr);
         BOOST_REQUIRE_EQUAL(allocator._cpu_allocation_count, 100);
+#ifndef CPU_ONLY
         const uint8_t* d_ptr = mem.getGpu();
         BOOST_REQUIRE(d_ptr);
         BOOST_REQUIRE_EQUAL(allocator._gpu_allocation_count, 100);
+#endif
         float* data = (float*)mem.getCpuMutable();
         BOOST_REQUIRE(data);
         for (int i = 0; i < 25; ++i)
@@ -114,9 +118,11 @@ BOOST_AUTO_TEST_CASE(custom_allocator)
         {
             data[i] = i;
         }
+#ifndef CPU_ONLY
         mem.getGpu();
-        BOOST_REQUIRE_EQUAL(allocator._cpu_allocation_count, 500);
         BOOST_REQUIRE_EQUAL(allocator._gpu_allocation_count, 500);
+#endif
+        BOOST_REQUIRE_EQUAL(allocator._cpu_allocation_count, 500);
     }
     BOOST_REQUIRE_EQUAL(allocator._cpu_allocation_count, 0);
     BOOST_REQUIRE_EQUAL(allocator._gpu_allocation_count, 0);
@@ -135,9 +141,11 @@ BOOST_AUTO_TEST_CASE(wrap_vec)
         BOOST_REQUIRE_EQUAL((const float*)h_ptr, vector.data());
         BOOST_REQUIRE(h_ptr);
         BOOST_REQUIRE_EQUAL(allocator._cpu_allocation_count, 0);
+#ifndef CPU_ONLY
         const uint8_t* d_ptr = mem.getGpu();
         BOOST_REQUIRE(d_ptr);
         BOOST_REQUIRE_EQUAL(allocator._gpu_allocation_count, 4000);
+#endif
         float* data = (float*)mem.getCpuMutable();
         BOOST_REQUIRE(data);
         for (int i = 0; i < 1000; ++i)
@@ -160,9 +168,11 @@ BOOST_AUTO_TEST_CASE(wrap_vec)
         {
             data[i] = i;
         }
+#ifndef CPU_ONLY
         mem.getGpu();
-        BOOST_REQUIRE_EQUAL(allocator._cpu_allocation_count, 500);
         BOOST_REQUIRE_EQUAL(allocator._gpu_allocation_count, 500);
+#endif
+        BOOST_REQUIRE_EQUAL(allocator._cpu_allocation_count, 500);
     }
     BOOST_REQUIRE_EQUAL(allocator._cpu_allocation_count, 0);
     BOOST_REQUIRE_EQUAL(allocator._gpu_allocation_count, 0);
