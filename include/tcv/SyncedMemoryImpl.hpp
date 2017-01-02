@@ -92,7 +92,7 @@ const T* SyncedMemory_<T>::getCpu(size_t offset, size_t width,
 template<class T>
 T* SyncedMemory_<T>::getCpuMutable(cudaStream_t stream)
 {
-    return (T*)SyncedMemory::getCpu(stream);
+    return (T*)SyncedMemory::getCpuMutable(stream);
 }
 
 template<class T>

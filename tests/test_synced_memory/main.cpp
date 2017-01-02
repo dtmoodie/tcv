@@ -156,3 +156,8 @@ BOOST_AUTO_TEST_CASE(wrap_vec)
     BOOST_REQUIRE_EQUAL(allocator._cpu_allocation_count, 0);
     BOOST_REQUIRE_EQUAL(allocator._gpu_allocation_count, 0);
 }
+
+BOOST_AUTO_TEST_CASE(check_memory_leak)
+{
+    delete Allocator::getDefaultAllocator();
+}

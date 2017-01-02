@@ -4,13 +4,19 @@
 namespace tcv
 {
 
-Tensor::Tensor():
-    shape(new SyncedMemory_<size_t>()),
-    stride(new SyncedMemory_<size_t>())
+Tensor::Tensor(Allocator* allocator):
+    shape(new SyncedMemory_<size_t>(allocator)),
+    stride(new SyncedMemory_<size_t>(allocator))
 {
     data = nullptr;
     dims = 0;
-    allocator = nullptr;
+    if(allocator == nullptr)
+    {
+        this->allocator = Allocator::getDefaultAllocator();
+    }else
+    {
+        this->allocator = allocator;
+    }
     flags = 0;
     refCount = 0;
 }
@@ -32,11 +38,7 @@ Tensor& Tensor::operator=(Tensor& tensor)
 {
     decrement();
     data = tensor.data;
-    if(stride)
-        delete stride;
     stride = tensor.stride->clone();
-    if(shape)
-        delete shape;
     shape = tensor.shape->clone();
     dims = tensor.dims;
     allocator = tensor.allocator;
@@ -87,10 +89,12 @@ size_t Tensor::numBytes() const
     }
     return size;
 }
+
 uint8_t Tensor::elemType() const
 {
     return (flags >> 12) & 0x0F;
 }
+
 void Tensor::cleanup()
 {
     if (allocator)
@@ -123,6 +127,7 @@ size_t Tensor::getStride(int dim)
 {
     return getStrideBytes(dim) / data->getElemSize();
 }
+
 size_t Tensor::getStrideBytes(int dim)
 {
     return (*stride)[dim];
@@ -143,22 +148,27 @@ size_t Tensor::getNumElements(int dim)
 {
     return getNumBytes(dim) / data->getElemSize();
 }
+
 size_t Tensor::getShape(int dim)
 {
     return (*shape)[dim] / data->getElemSize();
 }
+
 size_t Tensor::getStaticShape(int dim)
 {
     return 0;
 }
+
 size_t Tensor::getShapeBytes(int dim)
 {
     return (*shape)[dim];
 }
+
 size_t Tensor::getNumDims()
 {
     return dims;
 }
+
 size_t Tensor::getSize(int dim)
 {
     size_t size = 1;
@@ -168,6 +178,7 @@ size_t Tensor::getSize(int dim)
     }
     return size;
 }
+
 void Tensor::resize(size_t size)
 {
     if(data)
@@ -182,11 +193,11 @@ void Tensor::resize(size_t size)
     
     if (allocator)
     {
-        allocator->allocate(this, size, typeToSize(elemType()));
+        allocator->allocate(this, size, elemType());
     }
     else
     {
-        tcv::Allocator::getDefaultAllocator()->allocate(this, size, typeToSize(elemType()));
+        tcv::Allocator::getDefaultAllocator()->allocate(this, size, elemType());
     }
 }
 }
