@@ -7,9 +7,9 @@ compiler: gcc
 env:
   global:
     - NUM_THREADS=4
-    matrix:
-     - BUILD_NAME="default-make"
-
+  matrix:
+    - BUILD_NAME="default-cmake"
+    
 cache:
   apt: true
 
