@@ -15,3 +15,8 @@ cache:
 
 before_install:
   - sudo apt-get install libboost1.58-all-dev cuda-toolkit-6-5
+
+script:
+  - make all
+  - ./test_synced_memory
+  - ./test_tensor
