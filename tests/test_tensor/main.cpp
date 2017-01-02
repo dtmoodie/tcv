@@ -340,25 +340,25 @@ BOOST_AUTO_TEST_CASE(tensor_downconvert)
             BOOST_REQUIRE_EQUAL(Matx3f.getStrideBytes(1), 3 * sizeof(float));
             BOOST_REQUIRE_EQUAL(Matx3f.getStrideBytes(2), sizeof(float));
 
-            BOOST_REQUIRE_EQUAL(Matx3f.getShape(0), 340);
-            BOOST_REQUIRE_EQUAL(Matx3f.getShape(1), 480);
-            BOOST_REQUIRE_EQUAL(Matx3f.getShape(2), 3);
+            BOOST_REQUIRE_EQUAL(base.getShape(0), 340);
+            BOOST_REQUIRE_EQUAL(base.getShape(1), 480);
+            BOOST_REQUIRE_EQUAL(base.getShape(2), 3);
 
-            BOOST_REQUIRE_EQUAL(Matx3f.getShapeBytes(0), 340 * sizeof(float));
-            BOOST_REQUIRE_EQUAL(Matx3f.getShapeBytes(1), 480 * sizeof(float));
-            BOOST_REQUIRE_EQUAL(Matx3f.getShapeBytes(2), 3 * sizeof(float));
+            BOOST_REQUIRE_EQUAL(base.getShapeBytes(0), 340 * sizeof(float));
+            BOOST_REQUIRE_EQUAL(base.getShapeBytes(1), 480 * sizeof(float));
+            BOOST_REQUIRE_EQUAL(base.getShapeBytes(2), 3 * sizeof(float));
 
-            BOOST_REQUIRE_EQUAL(Matx3f.getNumElements(0), 340 * 480 * 3);
-            BOOST_REQUIRE_EQUAL(Matx3f.getNumElements(1), 480 * 3);
-            BOOST_REQUIRE_EQUAL(Matx3f.getNumElements(2), 3);
+            BOOST_REQUIRE_EQUAL(base.getNumElements(0), 340 * 480 * 3);
+            BOOST_REQUIRE_EQUAL(base.getNumElements(1), 480 * 3);
+            BOOST_REQUIRE_EQUAL(base.getNumElements(2), 3);
 
-            BOOST_REQUIRE_EQUAL(Matx3f.getStride(0), 480 * 3);
-            BOOST_REQUIRE_EQUAL(Matx3f.getStride(1), 3);
-            BOOST_REQUIRE_EQUAL(Matx3f.getStride(2), 1);
+            BOOST_REQUIRE_EQUAL(base.getStride(0), 480 * 3);
+            BOOST_REQUIRE_EQUAL(base.getStride(1), 3);
+            BOOST_REQUIRE_EQUAL(base.getStride(2), 1);
 
-            BOOST_REQUIRE_EQUAL(Matx3f.getStrideBytes(0), 480 * 3 * sizeof(float));
-            BOOST_REQUIRE_EQUAL(Matx3f.getStrideBytes(1), 3 * sizeof(float));
-            BOOST_REQUIRE_EQUAL(Matx3f.getStrideBytes(2), sizeof(float));
+            BOOST_REQUIRE_EQUAL(base.getStrideBytes(0), 480 * 3 * sizeof(float));
+            BOOST_REQUIRE_EQUAL(base.getStrideBytes(1), 3 * sizeof(float));
+            BOOST_REQUIRE_EQUAL(base.getStrideBytes(2), sizeof(float));
 
             BOOST_REQUIRE_EQUAL(Matx3f.getNumBytes(0), base.getNumBytes(0));
             BOOST_REQUIRE_EQUAL(Matx3f.getNumBytes(1), base.getNumBytes(1));
