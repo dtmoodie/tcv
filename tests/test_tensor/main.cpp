@@ -6,6 +6,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <tcv/Tensor.hpp>
+#include <tcv/TTensor.hpp>
 #include <tcv/SyncedMemory.hpp>
 #include <tcv/SyncedMemoryImpl.hpp>
 #include <tcv/View.hpp>

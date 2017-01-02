@@ -47,9 +47,9 @@ namespace tcv
                 N :
                 DimHandle<I + 1, Dims...>::getShape(dim);
         }
-        void setDimSize(int dim, size_t N)
+        void setDimSize(int dim, size_t n)
         {
-            DimHandle<I + 1, Dims...>::setDimSize(dim, N);
+            DimHandle<I + 1, Dims...>::setDimSize(dim, n);
         }
         template<class... Args>
         void setShape(Args... args)
@@ -92,7 +92,7 @@ namespace tcv
         {
             return N;
         }
-        void setDimSize(int dim, size_t N)
+        void setDimSize(int dim, size_t n)
         {
             return;
         }

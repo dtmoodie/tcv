@@ -87,28 +87,28 @@ namespace tcv
     {
     public:
         View_(int dim, Tensor& tensor_):
-            View(dim, tensor_)
+            View<XPU>(dim, tensor_)
         {
         }
         template<typename ... ArgTypes>
         T& operator()(ArgTypes... args)
         {
-            size_t offset_ = offset(stride, dims, args...);
+            size_t offset_ = offset(this->stride, this->dims, args...);
             offset_ /= sizeof(T);
-            return *((T*)start + offset_);
+            return *((T*)this->start + offset_);
         }
         template<typename ... ArgTypes>
         const T& operator()(ArgTypes... args) const
         {
-            size_t offset_ = offset(stride, dims, args...);
+            size_t offset_ = offset(this->stride, this->dims, args...);
             offset_ /= sizeof(T);
-            return *((T*)start + offset_);
+            return *((T*)this->start + offset_);
         }
         size_t size(int dim = -1) const
         {
             if(dim == -1)
             {
-                return getSize(this->shape, dims) / sizeof(T);
+                return getSize(this->shape, this->dims) / sizeof(T);
             }
             
             return this->shape[dim] / sizeof(T);
@@ -120,21 +120,21 @@ namespace tcv
     {
     public:
         ConstView_(int dim, const Tensor& tensor_) :
-            ConstView(dim, tensor_)
+            ConstView<XPU>(dim, tensor_)
         {
         }
         template<typename ... ArgTypes>
         const T& operator()(ArgTypes... args) const
         {
-            size_t offset_ = offset(stride, dims, args...);
+            size_t offset_ = offset(this->stride, this->dims, args...);
             offset_ /= sizeof(T);
-            return *((T*)start + offset_);
+            return *((T*)this->start + offset_);
         }
         size_t getSize(int dim = -1) const
         {
             if (dim == -1)
             {
-                return getSize(this->shape, dims) / sizeof(T);
+                return getSize(this->shape, this->dims) / sizeof(T);
             }
 
             return this->shape[dim] / sizeof(T);
