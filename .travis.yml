@@ -13,10 +13,11 @@ env:
 cache:
   apt: true
 
-before_install:
+before_script:
   - sudo apt-get install libboost1.58-all-dev cuda-toolkit-6-5
 
 script:
+  - mkdir -pi build && cd build && cmake ..
   - make all
   - ./test_synced_memory
   - ./test_tensor
