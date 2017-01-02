@@ -8,6 +8,7 @@ SyncedMemory::DirtyBlock::DirtyBlock(uint8_t* p, size_t w, size_t s, size_t h, b
     : ptr(p), stride(s), width(w), height(h), dirty_cpu(cpu)
 {
 }
+
 SyncedMemory::SyncedMemory(Allocator* allocator)
     : _allocator(allocator)
     , _cpu_data(nullptr)
@@ -17,6 +18,7 @@ SyncedMemory::SyncedMemory(Allocator* allocator)
 {
     
 }
+
 SyncedMemory::SyncedMemory(size_t size, uint8_t elemType, Allocator* allocator)
     : _allocator(allocator)
     , _cpu_data(nullptr)
@@ -31,6 +33,7 @@ SyncedMemory::SyncedMemory(size_t size, uint8_t elemType, Allocator* allocator)
     }
 
 }
+
 SyncedMemory::SyncedMemory(CpuPtr<uint8_t> data, size_t size, uint8_t elemType, Allocator* allocator):
     _allocator(allocator),
     _cpu_data((uint8_t*)data.ptr),
@@ -57,6 +60,7 @@ SyncedMemory::SyncedMemory(GpuPtr<uint8_t> data, size_t size, uint8_t elemType, 
         _allocator = Allocator::getDefaultAllocator();
     }
 }
+
 SyncedMemory::~SyncedMemory()
 {
     if(_cpu_data && _flags & OwnsCpu_e)
@@ -128,6 +132,7 @@ bool SyncedMemory::resize(size_t size)
     _size = size;
     return true;
 }
+
 size_t SyncedMemory::getSize() const
 {
     return _size;

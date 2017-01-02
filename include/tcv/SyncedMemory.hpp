@@ -66,7 +66,7 @@ public:
     template<class T>
     SyncedMemory(std::vector<T>& vec, Allocator* allocator = nullptr);
 
-    virtual ~SyncedMemory();
+    ~SyncedMemory();
 
     bool resize(size_t size);
     size_t getSize() const;
@@ -182,7 +182,7 @@ public:
         size_t height, size_t stride,
                      cudaStream_t stream = 0);
     SyncedMemory_<T>* clone(cudaStream_t stream = 0);
-    void copyTo(SyncedMemory& other, cudaStream_t stream);
+    void copyTo(SyncedMemory& other, cudaStream_t stream = 0);
     void copyFromCpu(const void* data, size_t size, cudaStream_t stream = 0);
     void copyFromGpu(const void* data, size_t size, cudaStream_t stream = 0);
 protected:
