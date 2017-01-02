@@ -14,7 +14,7 @@ cache:
   apt: true
 
 before_script:
-  - sudo apt-get install libboost1.58-all-dev cuda-toolkit-6-5
+  - sudo -E ./scripts/travis/install-deps.sh
 
 script:
   - mkdir -pi build && cd build && cmake ..
