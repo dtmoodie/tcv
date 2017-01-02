@@ -1,0 +1,17 @@
+dist: trusty
+sudo: required
+
+language: cpp
+compiler: gcc
+
+env:
+  global:
+    - NUM_THREADS=4
+    matrix:
+     - BUILD_NAME="default-make"
+
+cache:
+  apt: true
+
+before_install:
+  - sudo apt-get install libboost1.58-all-dev cuda-toolkit-6-5
