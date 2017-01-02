@@ -64,7 +64,7 @@ namespace tcv
             flags |= DataType<T>::DType << 12;
         }
         Tensor(Tensor& tensor);
-        Tensor();
+        Tensor(Allocator* allocator = nullptr);
         ~Tensor();
         size_t numBytes() const;
         uint8_t elemType() const;
@@ -95,6 +95,7 @@ namespace tcv
             return *this;
         }
         Tensor& operator=(Tensor& tensor);
+
         SyncedMemory* data;
         SyncedMemory_<size_t>* stride;
         SyncedMemory_<size_t>* shape;
@@ -113,6 +114,16 @@ namespace tcv
     {
     public:
         template<class... Args>
+        Tensor_(Allocator* allocator, Args... args) :
+            Tensor(allocator),
+            StaticShape<T, Sizes...>(*shape, *stride, args...)
+        {
+            this->dims = getNumDims();
+            this->flags = shapeFlags();
+            flags |= DataType<T>::DType << 12;
+            allocator->allocate(this, numBytes(), DataType<T>::DType);
+        }
+        template<class... Args>
         Tensor_(Args... args):
             Tensor(),
             StaticShape<T, Sizes...>(*shape, *stride, args...)
@@ -122,8 +133,8 @@ namespace tcv
             flags |= DataType<T>::DType << 12;
             Allocator::getDefaultAllocator()->allocate(this, numBytes(), DataType<T>::DType);
         }
-        Tensor_():
-            Tensor(),
+        Tensor_(Allocator* allocator_ = nullptr):
+            Tensor(allocator_),
             StaticShape<T, Sizes...>(*shape, *stride)
         {
             this->dims = getNumDims();
@@ -131,7 +142,7 @@ namespace tcv
             flags |= DataType<T>::DType << 12;
             if(flags & STATIC_SHAPE)
             {
-                Allocator::getDefaultAllocator()->allocate(this, numBytes(), DataType<T>::DType);
+                allocator->allocate(this, numBytes(), DataType<T>::DType);
             }
         }
         Tensor_(Tensor& other):
@@ -162,11 +173,11 @@ namespace tcv
                 "Number of channels must match for this constructor");
             for (int i = 0; i < other.getNumDims(); ++i)
             {
+                // Check that static dimensions are the same between the two tensors
                 if (this->getStaticShape(i) != 0)
                 {
-                    //ASSERT_EQ(other.getShape(i), this->getStaticShape(i))
-                    //  << " static shape set for dimension " << i << " and shape doesn't match";
-                    //static_assert(this->getNumDims(i) == other.getNumDims(i));
+                    ASSERT_EQ(other.getShape(i), this->getShape(i))
+                      << " static shape set for dimension " << i << " and shape doesn't match";
                 }
                 else
                 {
