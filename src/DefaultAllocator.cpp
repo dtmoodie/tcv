@@ -58,3 +58,37 @@ bool DefaultAllocator::deallocate(Tensor* tensor)
     }
     return false;
 }
+
+bool NoCudaAllocator::allocateGpu(void** ptr, size_t bytes)
+{
+    
+}
+bool NoCudaAllocator::allocateCpu(void** ptr, size_t bytes)
+{
+
+}
+bool NoCudaAllocator::allocate(SyncedMemory* synced_mem, size_t bytes, uint8_t elemType)
+{
+
+}
+bool NoCudaAllocator::allocate(Tensor* tensor, size_t bytes, uint8_t elemType)
+{
+
+}
+
+bool NoCudaAllocator::deallocateGpu(void* ptr, size_t bytes)
+{
+
+}
+bool NoCudaAllocator::deallocateCpu(void* ptr, size_t bytes)
+{
+
+}
+bool NoCudaAllocator::deallocate(SyncedMemory* synced_mem)
+{
+
+}
+bool NoCudaAllocator::deallocate(Tensor* tensor)
+{
+
+}
