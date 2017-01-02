@@ -1,17 +1,18 @@
 #include "tcv/DefaultAllocator.hpp"
 #include <cuda_runtime_api.h>
+#include "tcv/Cuda.hpp"
 #include "tcv/Tensor.hpp"
 #include "tcv/SyncedMemory.hpp"
 using namespace tcv;
 
 bool DefaultAllocator::allocateGpu(void** ptr, size_t bytes)
 {
-    cudaMalloc(ptr, bytes);
+    tcvCudaSafeCallStream(cudaMalloc(ptr, bytes), " failed to allocate " << bytes << " bytes on the GPU");
     return true;
 }
 bool DefaultAllocator::allocateCpu(void** ptr, size_t bytes)
 {
-    cudaMallocHost(ptr, bytes);
+    tcvCudaSafeCallStream(cudaMallocHost(ptr, bytes), " failed to allocate " << bytes << " bytes on the CPU");
     return *ptr != nullptr;
 }
 bool DefaultAllocator::allocate(SyncedMemory* synced_mem, size_t bytes, uint8_t elemType)
@@ -34,12 +35,12 @@ bool DefaultAllocator::allocate(Tensor* tensor, size_t bytes, uint8_t elemType)
 
 bool DefaultAllocator::deallocateGpu(void* ptr, size_t bytes)
 {
-    cudaFree(ptr);
+    tcvCudaSafeCallStream(cudaFree(ptr), " failed to free " << bytes << " bytes on the GPU");
     return true;
 }
 bool DefaultAllocator::deallocateCpu(void* ptr, size_t bytes)
 {
-    cudaFreeHost(ptr);
+    tcvCudaSafeCallStream(cudaFreeHost(ptr), " failed to free " << bytes << " bytes on the CPU");
     return true;
 }
 bool DefaultAllocator::deallocate(SyncedMemory* synced_mem)
@@ -61,34 +62,23 @@ bool DefaultAllocator::deallocate(Tensor* tensor)
 
 bool NoCudaAllocator::allocateGpu(void** ptr, size_t bytes)
 {
-    
+    THROW(warning) << "CUDA not available";
+    return false;
 }
 bool NoCudaAllocator::allocateCpu(void** ptr, size_t bytes)
 {
-
-}
-bool NoCudaAllocator::allocate(SyncedMemory* synced_mem, size_t bytes, uint8_t elemType)
-{
-
-}
-bool NoCudaAllocator::allocate(Tensor* tensor, size_t bytes, uint8_t elemType)
-{
-
+    *ptr = malloc(bytes);
+    return *ptr != nullptr;
 }
 
 bool NoCudaAllocator::deallocateGpu(void* ptr, size_t bytes)
 {
-
+    THROW(warning) << "CUDA not available";
+    return false;
 }
 bool NoCudaAllocator::deallocateCpu(void* ptr, size_t bytes)
 {
-
+    free(ptr);
+    return true;
 }
-bool NoCudaAllocator::deallocate(SyncedMemory* synced_mem)
-{
 
-}
-bool NoCudaAllocator::deallocate(Tensor* tensor)
-{
-
-}

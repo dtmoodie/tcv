@@ -17,7 +17,7 @@ before_script:
   - sudo -E ./scripts/travis/install-deps.sh
 
 script:
-  - mkdir -p build && cd build && cmake ..
+  - mkdir -p build && cd build && cmake .. -DCPU_ONLY_TEST
   - make all
   - ./test_synced_memory
   - ./test_tensor

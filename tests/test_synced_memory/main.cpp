@@ -12,7 +12,47 @@
 #include <iostream>
 
 using namespace tcv;
+#ifdef CPU_ONLY
+struct TestAllocator : public tcv::NoCudaAllocator
+{
+    typedef tcv::NoCudaAllocator Parent;
+#else
+struct TestAllocator : public tcv::DefaultAllocator
+{
+    typedef tcv::DefaultAllocator Parent;
+#endif
+    bool allocateGpu(void** ptr, size_t bytes)
+    {
+        Parent::allocateGpu(ptr, bytes);
+        _gpu_allocation_count += bytes;
+        return true;
+    }
+    bool allocateCpu(void** ptr, size_t bytes)
+    {
+        Parent::allocateCpu(ptr, bytes);
+        _cpu_allocation_count += bytes;
+        return true;
+    }
 
+    bool deallocateGpu(void* ptr, size_t bytes)
+    {
+        Parent::deallocateGpu(ptr, bytes);
+        _gpu_allocation_count -= bytes;
+        return true;
+    }
+    bool deallocateCpu(void* ptr, size_t bytes)
+    {
+        Parent::deallocateCpu(ptr, bytes);
+        _cpu_allocation_count -= bytes;
+        return true;
+    }
+    size_t _gpu_allocation_count = 0;
+    size_t _cpu_allocation_count = 0;
+};
+BOOST_AUTO_TEST_CASE(setup)
+{
+    tcv::Allocator::setDefaultAllocator(new TestAllocator());
+}
 BOOST_AUTO_TEST_CASE(synced_memory_creation)
 {
     SyncedMemory mem(100, DataType<float>::DType, nullptr);
@@ -40,36 +80,7 @@ BOOST_AUTO_TEST_CASE(synced_memory_creation)
     }
 }
 
-struct TestAllocator: public tcv::DefaultAllocator
-{
-    bool allocateGpu(void** ptr, size_t bytes)
-    {
-        DefaultAllocator::allocateGpu(ptr, bytes);
-        _gpu_allocation_count += bytes;
-        return true;
-    }
-    bool allocateCpu(void** ptr, size_t bytes)
-    {
-        DefaultAllocator::allocateCpu(ptr, bytes);
-        _cpu_allocation_count += bytes;
-        return true;
-    }
 
-    bool deallocateGpu(void* ptr, size_t bytes)
-    {
-        DefaultAllocator::deallocateGpu(ptr, bytes);
-        _gpu_allocation_count -= bytes;
-        return true;
-    }
-    bool deallocateCpu(void* ptr, size_t bytes)
-    {
-        DefaultAllocator::deallocateCpu(ptr, bytes);
-        _cpu_allocation_count -= bytes;
-        return true;
-    }
-    size_t _gpu_allocation_count = 0;
-    size_t _cpu_allocation_count = 0;
-};
 
 BOOST_AUTO_TEST_CASE(custom_allocator)
 {
