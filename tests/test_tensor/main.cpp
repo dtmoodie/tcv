@@ -21,11 +21,15 @@ typedef cv::Vec3f TestType;
 #else
 typedef float3 TestType;
 #endif
-
+#ifdef CPU_ONLY
+    typedef NoCudaAllocator TestAllocator;
+#else
+    typedef MemoryLeakDebugAllocator TestAllocator;
+#endif
 BOOST_AUTO_TEST_CASE(static_shape_tensor)
 {
     {
-        ScopedAllocator<MemoryLeakDebugAllocator> allocator; 
+        ScopedAllocator<TestAllocator> allocator;
     
     Tensor_<float, 4, 5, 3> Mat4x5x3f;
     BOOST_REQUIRE_EQUAL(Mat4x5x3f.getStrideBytes(), 5*3*sizeof(float));
@@ -100,7 +104,7 @@ BOOST_AUTO_TEST_CASE(static_shape_tensor)
 BOOST_AUTO_TEST_CASE(dynamic_shape_tensor)
 {
     {
-        ScopedAllocator<MemoryLeakDebugAllocator> allocator;
+        ScopedAllocator<TestAllocator> allocator;
     
     tcv::Tensor_<float, -1,-1,-1> Mat4x5x3f(4,5,3);
     BOOST_REQUIRE_EQUAL(Mat4x5x3f.getStrideBytes(), 5 * 3 * sizeof(float));
@@ -203,7 +207,7 @@ BOOST_AUTO_TEST_CASE(static_dim_trait_test)
 BOOST_AUTO_TEST_CASE(static_channel_dim)
 {
     {
-        ScopedAllocator<MemoryLeakDebugAllocator> allocator;
+        ScopedAllocator<TestAllocator> allocator;
         tcv::Tensor_<float, -1, -1, 3> Matx3f(340, 480);
         BOOST_REQUIRE_EQUAL(Matx3f.getShape(0), 340);
         BOOST_REQUIRE_EQUAL(Matx3f.getShape(1), 480);
@@ -247,7 +251,7 @@ BOOST_AUTO_TEST_CASE(static_channel_dim)
 BOOST_AUTO_TEST_CASE(tensor_downconvert)
 {
     {
-        ScopedAllocator<MemoryLeakDebugAllocator> allocator;
+        ScopedAllocator<TestAllocator> allocator;
 
         tcv::Tensor mat;
         {
@@ -619,7 +623,7 @@ std::ostream& operator<<(std::ostream& os, const float3& elem)
 BOOST_AUTO_TEST_CASE(vector)
 {
     {
-        ScopedAllocator<MemoryLeakDebugAllocator> allocator;
+        ScopedAllocator<TestAllocator> allocator;
         {
             tcv::Tensor_<float, 100> vec;
 
