@@ -20,10 +20,24 @@ namespace tcv
         virtual bool deallocate(SyncedMemory* synced_mem) = 0;
         virtual bool deallocate(Tensor* tensor) = 0;
         static Allocator* getDefaultAllocator();
+        static Allocator* getStandardAllocator();
+        static void setDefaultAllocator(Allocator* allocator);
+        static void setThreadAllocator(Allocator* allocator);
     protected:
         void setCpu(SyncedMemory* mem, uint8_t* ptr);
         void setGpu(SyncedMemory* mem, uint8_t* ptr);
         uint8_t* getCpu(SyncedMemory* mem);
         uint8_t* getGpu(SyncedMemory* mem);
+    };
+    template<class T> struct ScopedAllocator: public T
+    {
+        ScopedAllocator()
+        {
+            Allocator::setDefaultAllocator(this);
+        }
+        ~ScopedAllocator()
+        {
+            Allocator::setDefaultAllocator(Allocator::getStandardAllocator());
+        }
     };
 }

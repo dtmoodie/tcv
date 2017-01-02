@@ -1,9 +1,8 @@
 #include "tcv/Allocator.hpp"
-#include "tcv/Tensor.hpp"
-#include "tcv/SyncedMemory.hpp"
 #include "tcv/DefaultAllocator.hpp"
-#include <cuda_runtime_api.h>
+#include "tcv/SyncedMemory.hpp"
 #include <cstdlib>
+
 namespace tcv
 {
     void Allocator::setCpu(SyncedMemory* mem, uint8_t* ptr)
@@ -30,65 +29,33 @@ namespace tcv
     {
         return mem->_gpu_data;
     }
-
     
-    bool DefaultAllocator::allocateGpu(void** ptr, size_t bytes)
-    {
-        cudaMalloc(ptr, bytes);
-        return true;
-    }
-    bool DefaultAllocator::allocateCpu(void** ptr, size_t bytes)
-    {
-        cudaMallocHost(ptr, bytes);
-        return *ptr != nullptr;
-    }
-    bool DefaultAllocator::allocate(SyncedMemory* synced_mem, size_t bytes, uint8_t elemSize)
-    {
-        return true;
-    }
-    bool DefaultAllocator::allocate(Tensor* tensor, size_t bytes, uint8_t elemSize)
-    {
-        if(tensor->data)
-        {
-            delete tensor->data;
-            tensor->data = nullptr;
-        }
-        tensor->refCount = (int*)malloc(sizeof(int));
-        *tensor->refCount = 1;
-        tensor->data = new SyncedMemory(bytes, elemSize, this);
-        tensor->allocator = this;
-        return true;
-    }
+    thread_local Allocator* t_allocator = nullptr;
+    static Allocator* g_allocator = Allocator::getStandardAllocator();
 
-    bool DefaultAllocator::deallocateGpu(void* ptr, size_t bytes)
+    Allocator* Allocator::getStandardAllocator()
     {
-        cudaFree(ptr);
-        return true;
-    }
-    bool DefaultAllocator::deallocateCpu(void* ptr, size_t bytes)
-    {
-        cudaFreeHost(ptr);
-        return true;
-    }
-    bool DefaultAllocator::deallocate(SyncedMemory* synced_mem)
-    {
-        delete synced_mem;
-        return true;
-    }
-    bool DefaultAllocator::deallocate(Tensor* tensor)
-    {
-        if(deallocate(tensor->data))
+        static DefaultAllocator* g_allocator = nullptr;
+        if(g_allocator == nullptr)
         {
-            tensor->data = nullptr;
-            free(tensor->refCount);
-            tensor->refCount = nullptr;
-            return true;
+            g_allocator = new DefaultAllocator();
         }
-        return false;
+        return g_allocator;
     }
-    static DefaultAllocator g_allocator;
     Allocator* Allocator::getDefaultAllocator()
     {
-        return &g_allocator;
+        if(t_allocator)
+        {
+            return t_allocator;
+        }
+        return g_allocator;
+    }
+    void Allocator::setDefaultAllocator(Allocator* allocator)
+    {
+        g_allocator = allocator;
+    }
+    void Allocator::setThreadAllocator(Allocator* allocator)
+    {
+        t_allocator = allocator;
     }
 }
