@@ -10,9 +10,17 @@
 #include <tcv/SyncedMemory.hpp>
 #include <tcv/SyncedMemoryImpl.hpp>
 #include <tcv/View.hpp>
+#ifdef WITH_OPENCV
 #include <tcv/cvTypeTraits.hpp>
+#endif
 #include <iostream>
 using namespace tcv;
+
+#ifdef WITH_OPENCV
+typedef cv::Vec3f TestType;
+#else
+typedef float3 TestType;
+#endif
 
 BOOST_AUTO_TEST_CASE(static_shape_tensor)
 {
@@ -552,7 +560,7 @@ BOOST_AUTO_TEST_CASE(tensor_downconvert)
             BOOST_REQUIRE_EQUAL(Matx3f.getSize(2), 3);
             BOOST_REQUIRE_EQUAL(Matx3f.getNumDims(), 3);
 
-            tcv::Tensor_<cv::Vec3f, -1, -1> VecMat(Matx3f);
+            tcv::Tensor_<TestType, -1, -1> VecMat(Matx3f);
             BOOST_REQUIRE_EQUAL(VecMat.getShape(0), 340);
             BOOST_REQUIRE_EQUAL(VecMat.getShape(1), 480);
             BOOST_REQUIRE_EQUAL(VecMat.getShape(2), 3);
@@ -583,7 +591,7 @@ BOOST_AUTO_TEST_CASE(tensor_downconvert)
         }
     }
 }
-
+#ifdef WITH_OPENCV
 template<class T, int N>
 std::ostream& operator<<(std::ostream& os, const cv::Vec<T, N>& elem)
 {
@@ -597,7 +605,17 @@ std::ostream& operator<<(std::ostream& os, const cv::Vec<T, N>& elem)
     os << ")";
     return os;
 }
+#else
 
+
+std::ostream& operator<<(std::ostream& os, const float3& elem)
+{
+    os << "(" << elem.x << ", " << elem.y << ", " << elem.z << ")";
+    return os;
+}
+
+
+#endif
 BOOST_AUTO_TEST_CASE(vector)
 {
     {
@@ -621,7 +639,8 @@ BOOST_AUTO_TEST_CASE(vector)
         }
     
         {
-            tcv::Tensor_<cv::Vec3f, 100> vec;
+
+            tcv::Tensor_<TestType, 100> vec;
 
             BOOST_REQUIRE_EQUAL(vec.getShape(0), 100);
             BOOST_REQUIRE_EQUAL(vec.getShape(1), 3);
@@ -639,10 +658,16 @@ BOOST_AUTO_TEST_CASE(vector)
             BOOST_REQUIRE_EQUAL(vec.getNumDims(), 2);
             for(int i = 0; i < 100; ++i)
             {
-                cv::Vec3f& elem = vec(i);
+                TestType& elem = vec(i);
+#ifdef WITH_OPENCV
                 elem[0] = i * 3;
                 elem[1] = i * 3 + 1;
                 elem[2] = i * 3 + 2;
+#else
+                elem.x = i * 3;
+                elem.y = i * 3 + 1;
+                elem.z = i * 3 + 2;
+#endif
             }
             for(int i = 0; i < 100; ++i)
             {

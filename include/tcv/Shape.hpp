@@ -1,7 +1,7 @@
 #pragma once
 #include "yar/Logging.hpp"
 #include "TypeTraits.hpp"
-#include <opencv2/core/matx.hpp>
+
 namespace tcv
 {
     template<int I, int64_t N, int64_t... Dims> struct DimHandle : public DimHandle<I + 1, Dims...>
